@@ -1,0 +1,12 @@
+.git
+vendor
+node_modules
+.env
+.claude
+docker-compose.dev.yml
+docker-compose.infra.yml
+deploy.sh
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*

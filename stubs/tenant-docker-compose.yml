@@ -1,0 +1,147 @@
+services:
+  app:
+    image: {{DINOFY_IMAGE}}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '{{CPU_LIMIT}}'
+          memory: {{MEMORY_LIMIT}}
+        reservations:
+          cpus: '{{CPU_RESERVATION}}'
+          memory: {{MEMORY_RESERVATION}}
+    volumes:
+      - storage:/var/www/html/storage
+      - env_data:/var/www/html/.docker
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: "{{APP_KEY}}"
+      DINOFY_APP_URL: "https://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
+      APP_INSTALLED: "true"
+      APP_AUTO_MIGRATE: "true"
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: "{{DB_DATABASE}}"
+      DB_USERNAME: "{{DB_USERNAME}}"
+      DB_PASSWORD: "{{DB_PASSWORD}}"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: file
+      DINOFY_DOCKER: "true"
+      DINOFY_RUN_SETUP: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - traefik-public
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.{{PROJECT_NAME}}.rule=Host(`{{SUBDOMAIN}}.{{BASE_DOMAIN}}`)"
+      - "traefik.http.routers.{{PROJECT_NAME}}.tls.certresolver=wildcard"
+      - "traefik.http.routers.{{PROJECT_NAME}}.tls.domains[0].main={{BASE_DOMAIN}}"
+      - "traefik.http.routers.{{PROJECT_NAME}}.tls.domains[0].sans=*.{{BASE_DOMAIN}}"
+      - "traefik.http.services.{{PROJECT_NAME}}.loadbalancer.server.port=80"
+      - "dinofy.tenant={{TENANT_ID}}"
+      - "dinofy.subdomain={{SUBDOMAIN}}"
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    command:
+      - "--innodb-buffer-pool-size=64M"
+      - "--innodb-log-file-size=16M"
+      - "--max-connections={{MAX_DB_CONNECTIONS}}"
+      - "--table-open-cache=100"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{DB_ROOT_PASSWORD}}"
+      MYSQL_DATABASE: "{{DB_DATABASE}}"
+      MYSQL_USER: "{{DB_USERNAME}}"
+      MYSQL_PASSWORD: "{{DB_PASSWORD}}"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+    command: ["redis-server", "--maxmemory", "32mb", "--maxmemory-policy", "allkeys-lru"]
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  queue:
+    image: {{DINOFY_IMAGE}}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    command: ["sh", "-lc", "php artisan queue:work --sleep=3 --tries=3 --timeout=0 --memory=96 --max-time=3600 --max-jobs=500 & Q=$$!; php artisan schedule:work & S=$$!; trap 'kill $$Q $$S 2>/dev/null || true' INT TERM; wait $$Q $$S || true"]
+    volumes:
+      - storage:/var/www/html/storage
+      - env_data:/var/www/html/.docker
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: "{{APP_KEY}}"
+      DINOFY_APP_URL: "https://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
+      APP_INSTALLED: "true"
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: "{{DB_DATABASE}}"
+      DB_USERNAME: "{{DB_USERNAME}}"
+      DB_PASSWORD: "{{DB_PASSWORD}}"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: file
+      DINOFY_DOCKER: "true"
+      DINOFY_RUN_SETUP: "false"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  traefik-public:
+    external: true
+  internal:
+    driver: bridge
+
+volumes:
+  storage:
+  env_data:
+  mysql_data:

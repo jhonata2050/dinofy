@@ -1,0 +1,127 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=traefik-public"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@dinofy.cloud}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.wildcard.acme.email=${ACME_EMAIL:-admin@dinofy.cloud}"
+      - "--certificatesresolvers.wildcard.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.wildcard.acme.dnschallenge=true"
+      - "--certificatesresolvers.wildcard.acme.dnschallenge.provider=${DNS_PROVIDER:-cloudflare}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/letsencrypt
+    environment:
+      CF_API_EMAIL: ${CF_API_EMAIL:-}
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN:-}
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${BASE_DOMAIN:-dinofy.cloud}`)"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=wildcard"
+      - "traefik.http.routers.traefik-dashboard.tls.domains[0].main=${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.routers.traefik-dashboard.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH:-admin:$$apr1$$xyz$$placeholder}"
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${BASE_DOMAIN:-dinofy.cloud}`)"
+      - "traefik.http.routers.portainer.tls.certresolver=wildcard"
+      - "traefik.http.routers.portainer.tls.domains[0].main=${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.routers.portainer.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+  master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dinofy_master:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - master_storage:/var/www/html/storage
+      - tenant_data:/srv/tenants
+    environment:
+      APP_NAME: "Dinofy Master"
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: "https://admin.${BASE_DOMAIN:-dinofy.cloud}"
+      APP_KEY: ${APP_KEY:-}
+      DB_HOST: master-mysql
+      DB_DATABASE: ${MASTER_DB_DATABASE:-dinofy_master}
+      DB_USERNAME: ${MASTER_DB_USERNAME:-master}
+      DB_PASSWORD: ${MASTER_DB_PASSWORD:-master_secret}
+      BASE_DOMAIN: ${BASE_DOMAIN:-dinofy.cloud}
+      DINOFY_IMAGE: ${DINOFY_IMAGE:-dinofy_app:latest}
+      CAJUPAY_API_KEY: ${CAJUPAY_API_KEY:-}
+      CAJUPAY_API_SECRET: ${CAJUPAY_API_SECRET:-}
+      CAJUPAY_WEBHOOK_SECRET: ${CAJUPAY_WEBHOOK_SECRET:-}
+      TENANT_DATA_PATH: /srv/tenants
+    depends_on:
+      master-mysql:
+        condition: service_healthy
+    networks:
+      - traefik-public
+      - master-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.master.rule=Host(`admin.${BASE_DOMAIN:-dinofy.cloud}`)"
+      - "traefik.http.routers.master.tls.certresolver=wildcard"
+      - "traefik.http.routers.master.tls.domains[0].main=${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.routers.master.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.services.master.loadbalancer.server.port=80"
+
+  master-mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MASTER_DB_ROOT_PASSWORD:-root_secret}
+      MYSQL_DATABASE: ${MASTER_DB_DATABASE:-dinofy_master}
+      MYSQL_USER: ${MASTER_DB_USERNAME:-master}
+      MYSQL_PASSWORD: ${MASTER_DB_PASSWORD:-master_secret}
+    volumes:
+      - master_mysql_data:/var/lib/mysql
+    networks:
+      - master-internal
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+networks:
+  traefik-public:
+    external: true
+  master-internal:
+    driver: bridge
+
+volumes:
+  traefik_certs:
+  portainer_data:
+  master_storage:
+  master_mysql_data:
+  tenant_data:
