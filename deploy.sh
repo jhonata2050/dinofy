@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e
 
-# ============================================
-# Dinofy Master — Deploy Script
-# Uso: bash deploy.sh [setup|update|status|logs|backup]
-# ============================================
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.prod.yml"
 ENV_FILE="$SCRIPT_DIR/.env"
@@ -24,31 +19,18 @@ ask() { read -p "$(echo -e "${CYAN}$1${NC}")" "$2"; }
 ask_secret() { read -sp "$(echo -e "${CYAN}$1${NC}")" "$2"; echo; }
 
 install_deps() {
-    if ! command -v curl >/dev/null 2>&1; then
-        log "Instalando curl..."
-        apt-get update -qq && apt-get install -y -qq curl ca-certificates gnupg lsb-release >/dev/null 2>&1 \
-            || yum install -y -q curl ca-certificates >/dev/null 2>&1 \
-            || apk add --no-cache curl ca-certificates >/dev/null 2>&1 \
-            || err "Nao foi possivel instalar curl. Instale manualmente."
-    fi
+    export DEBIAN_FRONTEND=noninteractive
 
-    if ! command -v git >/dev/null 2>&1; then
-        log "Instalando git..."
-        apt-get install -y -qq git >/dev/null 2>&1 \
-            || yum install -y -q git >/dev/null 2>&1 \
-            || apk add --no-cache git >/dev/null 2>&1
-    fi
-
-    if ! command -v openssl >/dev/null 2>&1; then
-        log "Instalando openssl..."
-        apt-get install -y -qq openssl >/dev/null 2>&1 \
-            || yum install -y -q openssl >/dev/null 2>&1 \
-            || apk add --no-cache openssl >/dev/null 2>&1
+    if ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1 || ! command -v openssl >/dev/null 2>&1; then
+        log "Instalando dependencias basicas..."
+        apt-get update -qq >/dev/null 2>&1 || true
+        apt-get install -y -qq curl ca-certificates gnupg git openssl >/dev/null 2>&1 || true
     fi
 }
 
 install_docker() {
-    log "Instalando Docker..."
+    log "Instalando Docker (pode levar alguns minutos)..."
+    export DEBIAN_FRONTEND=noninteractive
 
     apt-get update -qq >/dev/null 2>&1
     apt-get install -y -qq ca-certificates curl gnupg >/dev/null 2>&1
@@ -58,35 +40,30 @@ install_docker() {
     chmod a+r /etc/apt/keyrings/docker.asc
 
     . /etc/os-release 2>/dev/null || true
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME:-focal} stable" > /etc/apt/sources.list.d/docker.list
+    CODENAME="${VERSION_CODENAME:-focal}"
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $CODENAME stable" > /etc/apt/sources.list.d/docker.list
 
     apt-get update -qq >/dev/null 2>&1
     apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin >/dev/null 2>&1
 
-    systemctl enable docker 2>/dev/null || true
-    systemctl start docker 2>/dev/null || true
+    systemctl enable docker >/dev/null 2>&1 || true
+    systemctl start docker >/dev/null 2>&1 || true
 
-    docker info >/dev/null 2>&1 || err "Docker instalado mas nao iniciou. Execute: systemctl start docker"
-    log "Docker instalado com sucesso!"
+    docker info >/dev/null 2>&1 || err "Docker nao iniciou."
+    log "Docker instalado!"
 }
 
 check_deps() {
     install_deps
-
     if ! command -v docker >/dev/null 2>&1; then
         install_docker
     fi
-
+    docker info >/dev/null 2>&1 || err "Docker nao esta rodando."
     docker compose version >/dev/null 2>&1 || err "Docker Compose v2 nao encontrado."
-    docker info >/dev/null 2>&1 || err "Docker daemon nao esta rodando. Execute: systemctl start docker"
 }
 
 generate_password() {
-    openssl rand -base64 24 2>/dev/null | tr -d '/+=' | head -c 32
-}
-
-generate_app_key() {
-    docker run --rm php:8.2-cli php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;" 2>/dev/null
+    openssl rand -base64 24 2>/dev/null | tr -d '/+=' | head -c 24
 }
 
 setup() {
@@ -99,86 +76,47 @@ setup() {
     check_deps
 
     if [ -f "$ENV_FILE" ]; then
-        echo -e "${YELLOW}Ja existe um .env configurado.${NC}"
-        read -p "Deseja reconfigurar? (s/N): " RECONF
+        warn "Ja existe um .env. Deseja reconfigurar? (s/N)"
+        read -r RECONF
         if [ "$RECONF" != "s" ] && [ "$RECONF" != "S" ]; then
-            log "Usando .env existente. Executando update..."
             update
             return
         fi
     fi
 
-    # ─── Dominio ───
-    echo ""
     echo -e "${BOLD}1. DOMINIO${NC}"
-    echo -e "   Informe o dominio principal (ex: dinofy.cloud, meusite.com.br)"
-    echo -e "   O sistema criara: admin.DOMINIO e master.DOMINIO"
+    echo "   Informe o dominio apontado para esta VPS."
+    echo "   Admin: DOMINIO/admin  |  Cliente: DOMINIO/client"
     echo ""
-    ask "   Dominio: " BASE_DOMAIN
-    [ -z "$BASE_DOMAIN" ] && err "Dominio obrigatorio."
-    BASE_DOMAIN=$(echo "$BASE_DOMAIN" | sed 's|https\?://||' | sed 's|/.*||')
+    ask "   Dominio (ex: pay.srvbr.top): " APP_DOMAIN
+    [ -z "$APP_DOMAIN" ] && err "Dominio obrigatorio."
+    APP_DOMAIN=$(echo "$APP_DOMAIN" | sed 's|https\?://||' | sed 's|/.*||')
 
     echo ""
-    echo -e "   ${GREEN}admin.${BASE_DOMAIN}${NC}  → Painel administrativo"
-    echo -e "   ${GREEN}master.${BASE_DOMAIN}${NC} → Portal do cliente / Checkout"
-    echo ""
-
-    # ─── Cloudflare ───
-    echo -e "${BOLD}2. CLOUDFLARE (SSL Wildcard)${NC}"
-    echo -e "   Necessario para certificado HTTPS automatico."
-    echo -e "   Crie um API Token em: ${CYAN}dash.cloudflare.com → Profile → API Tokens${NC}"
-    echo -e "   Permissao: Zone > DNS > Edit"
-    echo ""
-    ask "   Email Cloudflare: " CF_EMAIL
-    ask_secret "   API Token DNS: " CF_TOKEN
-    [ -z "$CF_EMAIL" ] && err "Email Cloudflare obrigatorio."
-    [ -z "$CF_TOKEN" ] && err "Token Cloudflare obrigatorio."
-
-    # ─── Admin ───
-    echo ""
-    echo -e "${BOLD}3. ADMIN DO PAINEL${NC}"
-    ask "   Email do admin [${CF_EMAIL}]: " ADMIN_EMAIL
-    ADMIN_EMAIL="${ADMIN_EMAIL:-$CF_EMAIL}"
+    echo -e "${BOLD}2. ADMIN${NC}"
+    ask "   Email do admin: " ADMIN_EMAIL
+    [ -z "$ADMIN_EMAIL" ] && err "Email obrigatorio."
     ask_secret "   Senha do admin: " ADMIN_PASSWORD
-    [ -z "$ADMIN_PASSWORD" ] && err "Senha do admin obrigatoria."
+    [ -z "$ADMIN_PASSWORD" ] && err "Senha obrigatoria."
 
-    # ─── Senhas automaticas ───
     echo ""
-    echo -e "${BOLD}4. GERANDO CREDENCIAIS...${NC}"
-
+    echo -e "${BOLD}3. GERANDO CREDENCIAIS...${NC}"
     DB_PASSWORD=$(generate_password)
     DB_ROOT_PASSWORD=$(generate_password)
-    log "Senha MySQL gerada automaticamente."
+    log "Senhas MySQL geradas."
 
-    APP_KEY=$(generate_app_key)
-    if [ -z "$APP_KEY" ]; then
-        err "Falha ao gerar APP_KEY. Verifique se o Docker funciona: docker run --rm php:8.2-cli php -v"
-    fi
-    log "APP_KEY gerada: ${APP_KEY:0:20}..."
+    APP_KEY=$(docker run --rm php:8.2-cli php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;" 2>/dev/null)
+    [ -z "$APP_KEY" ] && err "Falha ao gerar APP_KEY."
+    log "APP_KEY gerada."
 
-    # Traefik auth
-    TRAEFIK_USER="admin"
-    TRAEFIK_PASS=$(generate_password | head -c 16)
-    if command -v htpasswd >/dev/null 2>&1; then
-        TRAEFIK_AUTH=$(htpasswd -nbB "$TRAEFIK_USER" "$TRAEFIK_PASS" | sed 's/\$/\$\$/g')
-    else
-        TRAEFIK_AUTH=$(docker run --rm httpd:alpine htpasswd -nbB "$TRAEFIK_USER" "$TRAEFIK_PASS" 2>/dev/null | sed 's/\$/\$\$/g')
-    fi
-    log "Traefik dashboard: ${TRAEFIK_USER} / ${TRAEFIK_PASS}"
-
-    # ─── Gerar .env ───
-    echo ""
     log "Gravando .env..."
-
     cat > "$ENV_FILE" <<ENVEOF
-# Dinofy Master — Gerado em $(date '+%Y-%m-%d %H:%M:%S')
-# Dominio: ${BASE_DOMAIN}
-
 APP_NAME="Dinofy Master"
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=${APP_KEY}
-APP_URL=https://admin.${BASE_DOMAIN}
+APP_URL=https://${APP_DOMAIN}
+APP_DOMAIN=${APP_DOMAIN}
 
 DB_CONNECTION=mysql
 DB_HOST=master-mysql
@@ -192,155 +130,76 @@ SESSION_DRIVER=database
 CACHE_STORE=file
 LOG_CHANNEL=stderr
 
-BASE_DOMAIN=${BASE_DOMAIN}
+BASE_DOMAIN=${APP_DOMAIN}
 DINOFY_IMAGE=dinofy_app:latest
 TENANT_DATA_PATH=/srv/tenants
 
-ACME_EMAIL=${CF_EMAIL}
-CF_API_EMAIL=${CF_EMAIL}
-CF_DNS_API_TOKEN=${CF_TOKEN}
-
-TRAEFIK_AUTH=${TRAEFIK_AUTH}
-
+ACME_EMAIL=${ADMIN_EMAIL}
 ADMIN_EMAIL=${ADMIN_EMAIL}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 ENVEOF
 
     chmod 600 "$ENV_FILE"
-    log ".env criado com permissoes restritas (600)."
+    log ".env criado."
 
-    # ─── Diretorios ───
-    log "Criando diretorios..."
-    sudo mkdir -p /srv/tenants
-    sudo chown -R "$(id -u):$(id -g)" /srv/tenants
-
-    # ─── Rede Docker ───
-    log "Criando rede traefik-public..."
+    mkdir -p /srv/tenants
     docker network create traefik-public 2>/dev/null || true
 
-    # ─── Build e Start ───
-    log "Construindo e iniciando containers..."
+    log "Construindo containers (primeira vez demora ~10min)..."
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
     log "Aguardando servicos..."
     sleep 15
 
-    # ─── Status ───
-    echo ""
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
     echo ""
-
     echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
     echo -e "${BOLD}║         DEPLOY CONCLUIDO!                ║${NC}"
     echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${BOLD}URLs:${NC}"
-    echo -e "  Admin:     ${GREEN}https://admin.${BASE_DOMAIN}${NC}"
-    echo -e "  Cliente:   ${GREEN}https://master.${BASE_DOMAIN}${NC}"
-    echo -e "  Traefik:   ${GREEN}https://traefik.${BASE_DOMAIN}${NC}"
+    echo -e "  Admin:    ${GREEN}https://${APP_DOMAIN}/admin${NC}"
+    echo -e "  Cliente:  ${GREEN}https://${APP_DOMAIN}/client${NC}"
+    echo -e "  Checkout: ${GREEN}https://${APP_DOMAIN}/checkout${NC}"
     echo ""
-    echo -e "  ${BOLD}Credenciais admin:${NC}"
-    echo -e "  Email:     ${CYAN}${ADMIN_EMAIL}${NC}"
-    echo -e "  Senha:     (a que voce definiu)"
-    echo ""
-    echo -e "  ${BOLD}Traefik dashboard:${NC}"
-    echo -e "  Usuario:   ${CYAN}${TRAEFIK_USER}${NC}"
-    echo -e "  Senha:     ${CYAN}${TRAEFIK_PASS}${NC}"
-    echo ""
-    echo -e "  ${YELLOW}IMPORTANTE — Configure o DNS no Cloudflare:${NC}"
-    echo -e "  ${BASE_DOMAIN}     →  A  →  $(curl -s ifconfig.me 2>/dev/null || echo 'IP_DA_VPS')  (Proxy ON)"
-    echo -e "  *.${BASE_DOMAIN}   →  A  →  $(curl -s ifconfig.me 2>/dev/null || echo 'IP_DA_VPS')  (Proxy ON)"
-    echo ""
-    echo -e "  ${YELLOW}Salve essas credenciais! A senha do Traefik nao sera mostrada novamente.${NC}"
+    echo -e "  Login:    ${CYAN}${ADMIN_EMAIL}${NC}"
     echo ""
 }
 
 update() {
-    log "=== ATUALIZANDO ==="
-    check_deps
     [ ! -f "$ENV_FILE" ] && err ".env nao encontrado. Execute: bash deploy.sh setup"
-
-    log "Rebuild e restart..."
+    log "Atualizando..."
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
-
-    log "Limpando imagens antigas..."
-    docker image prune -f 2>/dev/null || true
-
-    echo ""
+    docker image prune -f >/dev/null 2>&1 || true
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
-    log "=== UPDATE CONCLUIDO ==="
+    log "Update concluido!"
 }
 
 status() {
-    log "=== STATUS ==="
-    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps 2>/dev/null || docker compose -f "$COMPOSE_FILE" ps
-    echo ""
-    log "Containers ativos:"
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -30
-    echo ""
-    log "Uso de disco:"
-    docker system df
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps 2>/dev/null || docker ps
 }
 
 show_logs() {
-    local service="${1:-master}"
-    log "Logs de: $service (Ctrl+C para sair)"
-    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs -f --tail=100 "$service"
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs -f --tail=100 "${1:-master}"
 }
 
 backup() {
-    log "=== BACKUP ==="
     [ ! -f "$ENV_FILE" ] && err ".env nao encontrado."
     source "$ENV_FILE"
-
-    local BACKUP_DIR="/srv/backups/$(date +%Y%m%d_%H%M%S)"
-    mkdir -p "$BACKUP_DIR"
-
-    log "Dump do MySQL..."
+    local DIR="/srv/backups/$(date +%Y%m%d_%H%M%S)"
+    mkdir -p "$DIR"
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T master-mysql \
-        mysqldump -u"${DB_USERNAME}" -p"${DB_PASSWORD}" "${DB_DATABASE}" \
-        --single-transaction --routines --triggers \
-        > "$BACKUP_DIR/dinofy_master.sql"
-
-    log "Backup storage..."
-    docker cp "$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q master):/var/www/html/storage" "$BACKUP_DIR/storage" 2>/dev/null || true
-
-    log "Backup .env..."
-    cp "$ENV_FILE" "$BACKUP_DIR/.env.bak"
-
-    local SIZE=$(du -sh "$BACKUP_DIR" | cut -f1)
-    log "Backup salvo em: $BACKUP_DIR ($SIZE)"
+        mysqldump -u"${DB_USERNAME}" -p"${DB_PASSWORD}" "${DB_DATABASE}" --single-transaction > "$DIR/db.sql"
+    cp "$ENV_FILE" "$DIR/.env.bak"
+    log "Backup em: $DIR ($(du -sh "$DIR" | cut -f1))"
 }
 
-domain() {
-    [ ! -f "$ENV_FILE" ] && err ".env nao encontrado."
-    source "$ENV_FILE"
-    echo ""
-    echo -e "  Dominio:   ${GREEN}${BASE_DOMAIN}${NC}"
-    echo -e "  Admin:     ${GREEN}https://admin.${BASE_DOMAIN}${NC}"
-    echo -e "  Cliente:   ${GREEN}https://master.${BASE_DOMAIN}${NC}"
-    echo -e "  Traefik:   ${GREEN}https://traefik.${BASE_DOMAIN}${NC}"
-    echo ""
-}
-
-# ============================================
 case "${1:-}" in
     setup)  setup ;;
     update) update ;;
     status) status ;;
     logs)   show_logs "$2" ;;
     backup) backup ;;
-    domain) domain ;;
     *)
-        echo ""
-        echo -e "${BOLD}Dinofy Master — Deploy${NC}"
-        echo ""
-        echo "  bash deploy.sh setup    Primeiro deploy (pergunta dominio, gera .env)"
-        echo "  bash deploy.sh update   Atualiza codigo e rebuild"
-        echo "  bash deploy.sh status   Status dos containers"
-        echo "  bash deploy.sh logs     Logs (ex: deploy.sh logs master)"
-        echo "  bash deploy.sh backup   Backup do banco e storage"
-        echo "  bash deploy.sh domain   Mostra dominio configurado"
-        echo ""
+        echo "Uso: bash deploy.sh [setup|update|status|logs|backup]"
         ;;
 esac

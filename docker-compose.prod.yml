@@ -3,7 +3,6 @@ services:
     image: traefik:v3.1
     restart: unless-stopped
     command:
-      - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=traefik-public"
@@ -13,30 +12,16 @@ services:
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
-      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
-      - "--log.level=INFO"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--log.level=WARN"
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_certs:/letsencrypt
-    environment:
-      CF_API_EMAIL: ${CF_API_EMAIL}
-      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
     networks:
       - traefik-public
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${BASE_DOMAIN}`)"
-      - "traefik.http.routers.traefik-dashboard.service=api@internal"
-      - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.traefik-dashboard.tls.domains[0].main=${BASE_DOMAIN}"
-      - "traefik.http.routers.traefik-dashboard.tls.domains[0].sans=*.${BASE_DOMAIN}"
-      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_AUTH}"
 
   master:
     build:
@@ -58,26 +43,17 @@ services:
       - master-internal
     labels:
       - "traefik.enable=true"
-      # Admin panel — admin.dinofy.cloud
-      - "traefik.http.routers.master-admin.rule=Host(`admin.${BASE_DOMAIN}`)"
-      - "traefik.http.routers.master-admin.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.master-admin.tls.domains[0].main=${BASE_DOMAIN}"
-      - "traefik.http.routers.master-admin.tls.domains[0].sans=*.${BASE_DOMAIN}"
-      - "traefik.http.services.master-admin.loadbalancer.server.port=80"
-      # Client portal + checkout — master.dinofy.cloud
-      - "traefik.http.routers.master-client.rule=Host(`master.${BASE_DOMAIN}`)"
-      - "traefik.http.routers.master-client.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.master-client.tls.domains[0].main=${BASE_DOMAIN}"
-      - "traefik.http.routers.master-client.tls.domains[0].sans=*.${BASE_DOMAIN}"
-      - "traefik.http.services.master-client.loadbalancer.server.port=80"
+      - "traefik.http.routers.master.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.master.tls.certresolver=letsencrypt"
+      - "traefik.http.services.master.loadbalancer.server.port=80"
 
   master-mysql:
     image: mysql:8.0
     restart: unless-stopped
     command:
-      - "--innodb-buffer-pool-size=256M"
-      - "--innodb-log-file-size=64M"
-      - "--max-connections=100"
+      - "--innodb-buffer-pool-size=128M"
+      - "--innodb-log-file-size=32M"
+      - "--max-connections=50"
     environment:
       MYSQL_ROOT_PASSWORD: ${MASTER_DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
