@@ -49,14 +49,22 @@ install_deps() {
 
 install_docker() {
     log "Instalando Docker..."
-    curl -fsSL https://get.docker.com | sh
+
+    apt-get update -qq >/dev/null 2>&1
+    apt-get install -y -qq ca-certificates curl gnupg >/dev/null 2>&1
+
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
+
+    . /etc/os-release 2>/dev/null || true
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME:-focal} stable" > /etc/apt/sources.list.d/docker.list
+
+    apt-get update -qq >/dev/null 2>&1
+    apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin >/dev/null 2>&1
+
     systemctl enable docker 2>/dev/null || true
     systemctl start docker 2>/dev/null || true
-
-    if ! docker compose version >/dev/null 2>&1; then
-        log "Instalando Docker Compose plugin..."
-        apt-get install -y -qq docker-compose-plugin >/dev/null 2>&1 || true
-    fi
 
     docker info >/dev/null 2>&1 || err "Docker instalado mas nao iniciou. Execute: systemctl start docker"
     log "Docker instalado com sucesso!"
