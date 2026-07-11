@@ -23,10 +23,54 @@ err() { echo -e "${RED}[ERRO]${NC} $1"; exit 1; }
 ask() { read -p "$(echo -e "${CYAN}$1${NC}")" "$2"; }
 ask_secret() { read -sp "$(echo -e "${CYAN}$1${NC}")" "$2"; echo; }
 
+install_deps() {
+    if ! command -v curl >/dev/null 2>&1; then
+        log "Instalando curl..."
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates gnupg lsb-release >/dev/null 2>&1 \
+            || yum install -y -q curl ca-certificates >/dev/null 2>&1 \
+            || apk add --no-cache curl ca-certificates >/dev/null 2>&1 \
+            || err "Nao foi possivel instalar curl. Instale manualmente."
+    fi
+
+    if ! command -v git >/dev/null 2>&1; then
+        log "Instalando git..."
+        apt-get install -y -qq git >/dev/null 2>&1 \
+            || yum install -y -q git >/dev/null 2>&1 \
+            || apk add --no-cache git >/dev/null 2>&1
+    fi
+
+    if ! command -v openssl >/dev/null 2>&1; then
+        log "Instalando openssl..."
+        apt-get install -y -qq openssl >/dev/null 2>&1 \
+            || yum install -y -q openssl >/dev/null 2>&1 \
+            || apk add --no-cache openssl >/dev/null 2>&1
+    fi
+}
+
+install_docker() {
+    log "Instalando Docker..."
+    curl -fsSL https://get.docker.com | sh
+    systemctl enable docker 2>/dev/null || true
+    systemctl start docker 2>/dev/null || true
+
+    if ! docker compose version >/dev/null 2>&1; then
+        log "Instalando Docker Compose plugin..."
+        apt-get install -y -qq docker-compose-plugin >/dev/null 2>&1 || true
+    fi
+
+    docker info >/dev/null 2>&1 || err "Docker instalado mas nao iniciou. Execute: systemctl start docker"
+    log "Docker instalado com sucesso!"
+}
+
 check_deps() {
-    command -v docker >/dev/null 2>&1 || err "Docker nao instalado. Execute: curl -fsSL https://get.docker.com | sh"
+    install_deps
+
+    if ! command -v docker >/dev/null 2>&1; then
+        install_docker
+    fi
+
     docker compose version >/dev/null 2>&1 || err "Docker Compose v2 nao encontrado."
-    docker info >/dev/null 2>&1 || err "Docker daemon nao esta rodando ou usuario sem permissao. Execute: sudo usermod -aG docker \$USER"
+    docker info >/dev/null 2>&1 || err "Docker daemon nao esta rodando. Execute: systemctl start docker"
 }
 
 generate_password() {
