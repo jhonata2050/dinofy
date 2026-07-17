@@ -27,4 +27,23 @@ php artisan db:seed --force --no-interaction 2>&1
 php artisan config:cache 2>&1 || true
 php artisan view:cache 2>&1 || true
 
+if [ -d /etc/traefik/dynamic ] && [ ! -f /etc/traefik/dynamic/master.yml ]; then
+    cat > /etc/traefik/dynamic/master.yml <<'TRAEFIKEOF'
+http:
+  routers:
+    master:
+      rule: "PathPrefix(`/`)"
+      service: master
+      entryPoints:
+        - web
+      priority: 1
+  services:
+    master:
+      loadBalancer:
+        servers:
+          - url: "http://master:80"
+TRAEFIKEOF
+    echo "Traefik master config criado."
+fi
+
 exec /usr/bin/supervisord -n -c /etc/supervisord.conf

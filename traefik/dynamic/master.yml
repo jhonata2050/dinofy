@@ -1,0 +1,13 @@
+http:
+  routers:
+    master:
+      rule: "PathPrefix(`/`)"
+      service: master
+      entryPoints:
+        - web
+      priority: 1
+  services:
+    master:
+      loadBalancer:
+        servers:
+          - url: "http://master:80"
