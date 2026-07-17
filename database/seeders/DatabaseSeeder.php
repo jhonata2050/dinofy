@@ -13,11 +13,14 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::firstOrCreate(
-            ['email' => 'admin@dinofy.cloud'],
+        $adminEmail = env('ADMIN_EMAIL', 'admin@dinofy.cloud');
+        $adminPassword = env('ADMIN_PASSWORD', 'admin123');
+
+        User::updateOrCreate(
+            ['email' => $adminEmail],
             [
                 'name' => 'Admin',
-                'password' => bcrypt('admin123'),
+                'password' => bcrypt($adminPassword),
             ]
         );
 

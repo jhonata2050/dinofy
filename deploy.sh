@@ -92,6 +92,19 @@ setup() {
     [ -z "$APP_DOMAIN" ] && err "Dominio obrigatorio."
     APP_DOMAIN=$(echo "$APP_DOMAIN" | sed 's|https\?://||' | sed 's|/.*||')
 
+    if lsof -i :80 >/dev/null 2>&1 || ss -tlnp | grep -q ':80 ' 2>/dev/null; then
+        warn "Porta 80 em uso. Parando servicos conflitantes..."
+        systemctl stop apache2 2>/dev/null || true
+        systemctl disable apache2 2>/dev/null || true
+        systemctl stop nginx 2>/dev/null || true
+        systemctl disable nginx 2>/dev/null || true
+        sleep 1
+        if lsof -i :80 >/dev/null 2>&1 || ss -tlnp | grep -q ':80 ' 2>/dev/null; then
+            err "Porta 80 ainda em uso. Libere a porta e tente novamente."
+        fi
+        log "Porta 80 liberada."
+    fi
+
     echo ""
     echo -e "${BOLD}2. ADMIN${NC}"
     ask "   Email do admin: " ADMIN_EMAIL
@@ -134,7 +147,6 @@ BASE_DOMAIN=${APP_DOMAIN}
 DINOFY_IMAGE=dinofy_app:latest
 TENANT_DATA_PATH=/srv/tenants
 
-ACME_EMAIL=${ADMIN_EMAIL}
 ADMIN_EMAIL=${ADMIN_EMAIL}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 ENVEOF
@@ -162,6 +174,8 @@ ENVEOF
     echo -e "  Checkout: ${GREEN}https://${APP_DOMAIN}/checkout${NC}"
     echo ""
     echo -e "  Login:    ${CYAN}${ADMIN_EMAIL}${NC}"
+    echo ""
+    echo -e "${YELLOW}CLOUDFLARE: Se o dominio usa Cloudflare, configure SSL/TLS para 'Flexible'.${NC}"
     echo ""
 }
 
