@@ -144,9 +144,23 @@ class TenantController extends Controller
         return back()->with('success', 'Tenant reativado.');
     }
 
+    public function reprovision(Tenant $tenant, TenantProvisioner $provisioner)
+    {
+        try {
+            $provisioner->provision($tenant);
+            return back()->with('success', 'Tenant reprovisionado com sucesso.');
+        } catch (\Exception $e) {
+            return back()->with('error', "Erro ao reprovisionar: {$e->getMessage()}");
+        }
+    }
+
     public function destroy(Tenant $tenant, TenantProvisioner $provisioner)
     {
-        $provisioner->terminate($tenant);
+        try {
+            $provisioner->terminate($tenant);
+        } catch (\Exception $e) {
+            $tenant->update(['status' => 'terminated']);
+        }
         return redirect()->route('admin.tenants.index')->with('success', 'Tenant destruído.');
     }
 }

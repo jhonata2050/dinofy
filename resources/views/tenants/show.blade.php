@@ -19,6 +19,11 @@
                 @csrf
                 <button class="px-4 py-2 text-white rounded-lg text-sm font-medium transition" style="background: var(--color-primary);">Reativar</button>
             </form>
+        @elseif(in_array($tenant->status, ['provisioning', 'pending_payment']))
+            <form method="POST" action="{{ route('admin.tenants.reprovision', $tenant) }}" onsubmit="return confirm('Reprovisionar este tenant?')">
+                @csrf
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition">Reprovisionar</button>
+            </form>
         @endif
         <form method="POST" action="{{ route('admin.tenants.destroy', $tenant) }}" onsubmit="return confirm('DESTRUIR este tenant? Isso é irreversível!')">
             @csrf @method('DELETE')
