@@ -2,7 +2,8 @@ FROM php:8.2-fpm-alpine
 
 RUN apk add --no-cache \
     icu-libs icu-data-en libzip libpng oniguruma \
-    nginx supervisor curl git unzip
+    nginx supervisor curl git unzip \
+    docker-cli docker-cli-compose
 
 RUN apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS libzip-dev libpng-dev oniguruma-dev icu-dev \
