@@ -4,6 +4,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.prod.yml"
 ENV_FILE="$SCRIPT_DIR/.env"
+APP_REPO="https://github.com/jhonata2050/dinofy-app.git"
+APP_DIR="$SCRIPT_DIR/../app"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -64,6 +66,27 @@ check_deps() {
 
 generate_password() {
     openssl rand -base64 24 2>/dev/null | tr -d '/+=' | head -c 24
+}
+
+build_app_image() {
+    log "Verificando imagem dinofy_app..."
+
+    if [ -d "$APP_DIR" ]; then
+        log "Atualizando repositorio do app..."
+        cd "$APP_DIR" && git pull 2>/dev/null || true
+        cd "$SCRIPT_DIR"
+    else
+        log "Clonando repositorio do app..."
+        git clone "$APP_REPO" "$APP_DIR"
+    fi
+
+    if [ ! -f "$APP_DIR/Dockerfile" ]; then
+        err "Dockerfile nao encontrado em $APP_DIR"
+    fi
+
+    log "Construindo imagem dinofy_app:latest (pode levar alguns minutos)..."
+    docker build -t dinofy_app:latest "$APP_DIR"
+    log "Imagem dinofy_app:latest construida!"
 }
 
 setup() {
@@ -158,6 +181,7 @@ LOG_CHANNEL=stderr
 
 BASE_DOMAIN=${APP_DOMAIN}
 DINOFY_IMAGE=dinofy_app:latest
+DINOFY_APP_REPO=${APP_REPO}
 TENANT_DATA_PATH=/srv/tenants
 
 ADMIN_EMAIL=${ADMIN_EMAIL}
@@ -177,9 +201,15 @@ ENVEOF
     log ".env criado."
 
     mkdir -p /srv/tenants
+    chmod 777 /srv/tenants
     docker network create traefik-public 2>/dev/null || true
 
-    log "Construindo containers (primeira vez demora ~10min)..."
+    echo ""
+    echo -e "${BOLD}5. CONSTRUINDO IMAGEM DO APP...${NC}"
+    build_app_image
+
+    echo ""
+    echo -e "${BOLD}6. SUBINDO MASTER...${NC}"
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
     log "Aguardando servicos..."
@@ -204,6 +234,7 @@ ENVEOF
 update() {
     [ ! -f "$ENV_FILE" ] && err ".env nao encontrado. Execute: bash deploy.sh setup"
     log "Atualizando..."
+    build_app_image
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
     docker image prune -f >/dev/null 2>&1 || true
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
@@ -235,7 +266,8 @@ case "${1:-}" in
     status) status ;;
     logs)   show_logs "$2" ;;
     backup) backup ;;
+    build-app) build_app_image ;;
     *)
-        echo "Uso: bash deploy.sh [setup|update|status|logs|backup]"
+        echo "Uso: bash deploy.sh [setup|update|status|logs|backup|build-app]"
         ;;
 esac
