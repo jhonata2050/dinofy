@@ -20,6 +20,7 @@ services:
       dockerfile: Dockerfile
     image: dinofy_master:latest
     restart: unless-stopped
+    user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - master_storage:/var/www/html/storage
