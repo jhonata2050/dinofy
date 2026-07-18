@@ -41,6 +41,12 @@
         </div>
 
         <div>
+            <label class="block text-sm font-medium text-zinc-700 mb-1">Nova Senha do Cliente</label>
+            <input type="password" name="password" placeholder="Deixe vazio para manter a atual" class="w-full px-3 py-2.5 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            <p class="text-xs text-zinc-400 mt-1">Mínimo 8 caracteres. Altera a senha do usuário proprietário.</p>
+        </div>
+
+        <div>
             <label class="block text-sm font-medium text-zinc-700 mb-1">Observações</label>
             <textarea name="notes" rows="3" class="w-full px-3 py-2.5 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-transparent">{{ old('notes', $tenant->notes) }}</textarea>
         </div>

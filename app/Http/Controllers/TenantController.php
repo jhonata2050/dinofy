@@ -110,9 +110,19 @@ class TenantController extends Controller
             'phone' => 'nullable|string|max:20',
             'document' => 'required|string|max:20',
             'notes' => 'nullable|string',
+            'password' => 'nullable|min:8',
         ]);
 
         $planChanged = $tenant->plan_id !== (int) $validated['plan_id'];
+
+        if (!empty($validated['password'])) {
+            $owner = $tenant->users()->where('is_owner', true)->first();
+            if ($owner) {
+                $owner->update(['password' => bcrypt($validated['password'])]);
+            }
+        }
+
+        unset($validated['password']);
         $tenant->update($validated);
 
         if ($planChanged) {
