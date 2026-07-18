@@ -113,7 +113,20 @@ setup() {
     [ -z "$ADMIN_PASSWORD" ] && err "Senha obrigatoria."
 
     echo ""
-    echo -e "${BOLD}3. GERANDO CREDENCIAIS...${NC}"
+    echo -e "${BOLD}3. SMTP (E-mail)${NC}"
+    echo "   Para redefinicao de senha e notificacoes."
+    echo "   Deixe vazio para configurar depois no .env"
+    echo ""
+    ask "   SMTP Host (ex: smtp.gmail.com): " MAIL_HOST
+    ask "   SMTP Porta (ex: 587): " MAIL_PORT
+    ask "   SMTP Usuario: " MAIL_USERNAME
+    ask_secret "   SMTP Senha: " MAIL_PASSWORD
+    ask "   E-mail remetente (ex: noreply@dinofy.app): " MAIL_FROM_ADDRESS
+    MAIL_PORT=${MAIL_PORT:-587}
+    MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-noreply@${APP_DOMAIN}}
+
+    echo ""
+    echo -e "${BOLD}4. GERANDO CREDENCIAIS...${NC}"
     DB_PASSWORD=$(generate_password)
     DB_ROOT_PASSWORD=$(generate_password)
     log "Senhas MySQL geradas."
@@ -149,6 +162,15 @@ TENANT_DATA_PATH=/srv/tenants
 
 ADMIN_EMAIL=${ADMIN_EMAIL}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+MAIL_MAILER=smtp
+MAIL_HOST=${MAIL_HOST}
+MAIL_PORT=${MAIL_PORT}
+MAIL_USERNAME=${MAIL_USERNAME}
+MAIL_PASSWORD=${MAIL_PASSWORD}
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+MAIL_FROM_NAME="Dinofy"
 ENVEOF
 
     chmod 600 "$ENV_FILE"

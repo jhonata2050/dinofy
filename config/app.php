@@ -11,5 +11,5 @@ return [
     'key' => env('APP_KEY'),
     'cipher' => 'AES-256-CBC',
     'maintenance' => ['driver' => 'file'],
-    'base_domain' => env('BASE_DOMAIN', 'dinofy.cloud'),
+    'base_domain' => env('BASE_DOMAIN', 'dinofy.app'),
 ];

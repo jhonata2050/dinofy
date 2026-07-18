@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminEmail = env('ADMIN_EMAIL', 'admin@dinofy.cloud');
+        $adminEmail = env('ADMIN_EMAIL', 'admin@dinofy.app');
         $adminPassword = env('ADMIN_PASSWORD', 'admin123');
 
         User::updateOrCreate(
@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
 
             // Platform
             ['group' => 'platform', 'key' => 'platform_name', 'value' => 'Dinofy', 'type' => 'text', 'label' => 'Nome da Plataforma', 'description' => 'Nome exibido no painel e comunicações'],
-            ['group' => 'platform', 'key' => 'base_domain', 'value' => 'dinofy.cloud', 'type' => 'text', 'label' => 'Domínio Base', 'description' => 'Domínio para subdomínios dos tenants (ex: dinofy.cloud)'],
+            ['group' => 'platform', 'key' => 'base_domain', 'value' => 'dinofy.app', 'type' => 'text', 'label' => 'Domínio Base', 'description' => 'Domínio para subdomínios dos tenants (ex: dinofy.app)'],
             ['group' => 'platform', 'key' => 'dinofy_image', 'value' => 'dinofy_app:latest', 'type' => 'text', 'label' => 'Imagem Docker', 'description' => 'Nome da imagem Docker do Dinofy'],
             ['group' => 'platform', 'key' => 'tenant_data_path', 'value' => '/srv/tenants', 'type' => 'text', 'label' => 'Path dos Dados', 'description' => 'Diretório base para dados dos tenants no servidor'],
             ['group' => 'platform', 'key' => 'max_tenants', 'value' => '0', 'type' => 'integer', 'label' => 'Limite de Tenants', 'description' => '0 = ilimitado. Limite máximo de tenants ativos'],
@@ -81,7 +81,7 @@ class DatabaseSeeder extends Seeder
                 [
                     'plan_id' => $demoPlan->id,
                     'name' => 'Empresa Demo',
-                    'email' => 'demo@dinofy.cloud',
+                    'email' => 'demo@dinofy.app',
                     'phone' => '11999999999',
                     'document' => '12345678000100',
                     'status' => 'active',
@@ -94,7 +94,7 @@ class DatabaseSeeder extends Seeder
             );
 
             TenantUser::firstOrCreate(
-                ['email' => 'demo@dinofy.cloud'],
+                ['email' => 'demo@dinofy.app'],
                 [
                     'tenant_id' => $tenant->id,
                     'name' => 'Demo User',

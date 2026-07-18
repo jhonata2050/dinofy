@@ -66,6 +66,7 @@
                     <input type="checkbox" name="remember" class="rounded border-zinc-300 text-green-600 focus:ring-green-600">
                     <span class="text-sm text-zinc-600">Lembrar-me</span>
                 </label>
+                <a href="{{ route('client.password.request') }}" class="text-sm hover:underline" style="color: var(--color-primary);">Esqueceu a senha?</a>
             </div>
             <button type="submit" id="loginBtn" class="w-full py-2.5 text-white rounded-lg font-medium text-sm transition hover:opacity-90 flex items-center justify-center gap-2" style="background: var(--color-primary);">
                 <span id="loginText">Entrar</span>

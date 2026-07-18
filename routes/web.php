@@ -38,6 +38,11 @@ Route::prefix('client')->name('client.')->group(function () {
     Route::get('/login', [Client\AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [Client\AuthController::class, 'login']);
 
+    Route::get('/forgot-password', [Client\PasswordResetController::class, 'showForgotForm'])->name('password.request');
+    Route::post('/forgot-password', [Client\PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [Client\PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [Client\PasswordResetController::class, 'reset'])->name('password.update');
+
     Route::middleware('auth:tenant')->group(function () {
         Route::post('/logout', [Client\AuthController::class, 'logout'])->name('logout');
         Route::get('/', Client\DashboardController::class)->name('dashboard');
@@ -68,6 +73,11 @@ Route::prefix('client')->name('client.')->group(function () {
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
+
+    Route::get('/forgot-password', [\App\Http\Controllers\Admin\PasswordResetController::class, 'showForgotForm'])->name('password.request');
+    Route::post('/forgot-password', [\App\Http\Controllers\Admin\PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [\App\Http\Controllers\Admin\PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [\App\Http\Controllers\Admin\PasswordResetController::class, 'reset'])->name('password.update');
 
     Route::middleware('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
