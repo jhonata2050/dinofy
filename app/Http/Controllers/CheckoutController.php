@@ -83,6 +83,13 @@ class CheckoutController extends Controller
             'idempotency_key' => $token,
         ]);
 
+        $invoice->items()->create([
+            'description' => $plan->name . ' - Mensal',
+            'quantity' => 1,
+            'unit_price_cents' => $plan->price_cents,
+            'total_cents' => $plan->price_cents,
+        ]);
+
         ActivityLog::log('tenant.signup', "Novo cadastro: {$tenant->subdomain} - {$plan->name}", $tenant->id);
 
         try {

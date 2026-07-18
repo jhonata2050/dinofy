@@ -22,7 +22,7 @@ class BillingController extends Controller
     public function show($id)
     {
         $tenant = Auth::guard('tenant')->user()->tenant;
-        $invoice = $tenant->invoices()->findOrFail($id);
+        $invoice = $tenant->invoices()->with('items')->findOrFail($id);
 
         return view('client.billing.show', compact('tenant', 'invoice'));
     }

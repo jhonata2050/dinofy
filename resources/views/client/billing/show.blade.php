@@ -50,11 +50,42 @@
     {{-- Detalhes --}}
     <div class="rounded-xl border border-zinc-100 bg-white p-6 shadow-sm">
         <h2 class="text-sm font-semibold text-zinc-700 mb-4">Detalhes da Fatura</h2>
-        <dl class="space-y-3 text-sm">
-            <div class="flex justify-between">
-                <dt class="text-zinc-500">Valor</dt>
-                <dd class="font-bold text-zinc-900 text-lg">R$ {{ $invoice->amountFormatted() }}</dd>
+
+        @if($invoice->items->count())
+            <div class="mb-4 -mx-2">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-zinc-100">
+                            <th class="text-left px-2 py-2 font-medium text-zinc-500 text-xs uppercase">Servico</th>
+                            <th class="text-center px-2 py-2 font-medium text-zinc-500 text-xs uppercase w-12">Qtd</th>
+                            <th class="text-right px-2 py-2 font-medium text-zinc-500 text-xs uppercase w-24">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($invoice->items as $item)
+                            <tr class="border-b border-zinc-50">
+                                <td class="px-2 py-2 text-zinc-800">{{ $item->description }}</td>
+                                <td class="px-2 py-2 text-center text-zinc-500">{{ $item->quantity }}</td>
+                                <td class="px-2 py-2 text-right font-medium text-zinc-800">R$ {{ $item->totalFormatted() }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr class="border-t border-zinc-200">
+                            <td colspan="2" class="px-2 py-2.5 text-right font-semibold text-zinc-700">Total:</td>
+                            <td class="px-2 py-2.5 text-right font-bold text-zinc-900">R$ {{ $invoice->amountFormatted() }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
+        @else
+            <div class="flex justify-between mb-3">
+                <span class="text-zinc-500">Valor</span>
+                <span class="font-bold text-zinc-900 text-lg">R$ {{ $invoice->amountFormatted() }}</span>
+            </div>
+        @endif
+
+        <dl class="space-y-3 text-sm">
             <div class="flex justify-between">
                 <dt class="text-zinc-500">Plano</dt>
                 <dd class="text-zinc-700 font-medium">{{ $invoice->plan->name ?? '—' }}</dd>

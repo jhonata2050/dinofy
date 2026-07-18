@@ -40,6 +40,13 @@ class WooviBillingService implements BillingGatewayInterface
             'idempotency_key' => Str::uuid()->toString(),
         ]);
 
+        $invoice->items()->create([
+            'description' => $plan->name . ' - Mensal',
+            'quantity' => 1,
+            'unit_price_cents' => $plan->price_cents,
+            'total_cents' => $plan->price_cents,
+        ]);
+
         $this->createPixCharge($invoice, $tenant);
 
         $tenant->update(['next_billing_date' => $now->copy()->addMonth()]);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Services\BillingGatewayFactory;
@@ -30,7 +31,7 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $invoice->load(['tenant', 'plan']);
+        $invoice->load(['tenant', 'plan', 'items']);
         return view('invoices.show', compact('invoice'));
     }
 
@@ -48,17 +49,25 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'tenant_id' => 'required|exists:tenants,id',
             'plan_id' => 'required|exists:plans,id',
-            'amount_cents' => 'required|integer|min:1',
             'due_date' => 'required|date',
             'period_start' => 'required|date',
             'period_end' => 'required|date|after_or_equal:period_start',
             'generate_pix' => 'nullable|boolean',
+            'items' => 'required|array|min:1',
+            'items.*.description' => 'required|string|max:255',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.unit_price_cents' => 'required|integer|min:0',
         ]);
+
+        $totalCents = 0;
+        foreach ($validated['items'] as $item) {
+            $totalCents += $item['quantity'] * $item['unit_price_cents'];
+        }
 
         $invoice = Invoice::create([
             'tenant_id' => $validated['tenant_id'],
             'plan_id' => $validated['plan_id'],
-            'amount_cents' => $validated['amount_cents'],
+            'amount_cents' => $totalCents,
             'due_date' => $validated['due_date'],
             'period_start' => $validated['period_start'],
             'period_end' => $validated['period_end'],
@@ -66,8 +75,17 @@ class InvoiceController extends Controller
             'idempotency_key' => \Illuminate\Support\Str::random(48),
         ]);
 
+        foreach ($validated['items'] as $item) {
+            $invoice->items()->create([
+                'description' => $item['description'],
+                'quantity' => $item['quantity'],
+                'unit_price_cents' => $item['unit_price_cents'],
+                'total_cents' => $item['quantity'] * $item['unit_price_cents'],
+            ]);
+        }
+
         $tenant = Tenant::find($validated['tenant_id']);
-        ActivityLog::log('invoice.created', "Fatura #{$invoice->id} criada manualmente — R$ " . $invoice->amountFormatted(), $tenant->id);
+        ActivityLog::log('invoice.created', "Fatura #{$invoice->id} criada — R$ " . $invoice->amountFormatted(), $tenant->id);
 
         if ($request->boolean('generate_pix')) {
             try {
@@ -83,7 +101,7 @@ class InvoiceController extends Controller
 
     public function edit(Invoice $invoice)
     {
-        $invoice->load(['tenant', 'plan']);
+        $invoice->load(['tenant', 'plan', 'items']);
         $plans = Plan::where('is_active', true)->get();
 
         return view('invoices.edit', compact('invoice', 'plans'));
@@ -93,17 +111,42 @@ class InvoiceController extends Controller
     {
         $validated = $request->validate([
             'plan_id' => 'required|exists:plans,id',
-            'amount_cents' => 'required|integer|min:1',
             'due_date' => 'required|date',
             'period_start' => 'required|date',
             'period_end' => 'required|date|after_or_equal:period_start',
             'status' => 'required|in:pending,paid,overdue,cancelled',
+            'items' => 'required|array|min:1',
+            'items.*.description' => 'required|string|max:255',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.unit_price_cents' => 'required|integer|min:0',
         ]);
 
-        $invoice->update($validated);
+        $totalCents = 0;
+        foreach ($validated['items'] as $item) {
+            $totalCents += $item['quantity'] * $item['unit_price_cents'];
+        }
+
+        $invoice->update([
+            'plan_id' => $validated['plan_id'],
+            'due_date' => $validated['due_date'],
+            'period_start' => $validated['period_start'],
+            'period_end' => $validated['period_end'],
+            'status' => $validated['status'],
+            'amount_cents' => $totalCents,
+        ]);
 
         if ($validated['status'] === 'paid' && !$invoice->paid_at) {
             $invoice->update(['paid_at' => now()]);
+        }
+
+        $invoice->items()->delete();
+        foreach ($validated['items'] as $item) {
+            $invoice->items()->create([
+                'description' => $item['description'],
+                'quantity' => $item['quantity'],
+                'unit_price_cents' => $item['unit_price_cents'],
+                'total_cents' => $item['quantity'] * $item['unit_price_cents'],
+            ]);
         }
 
         ActivityLog::log('invoice.updated', "Fatura #{$invoice->id} atualizada", $invoice->tenant_id);

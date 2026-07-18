@@ -68,6 +68,41 @@
     </div>
 </div>
 
+{{-- Itens --}}
+@if($invoice->items->count())
+<div class="mt-6 rounded-xl border border-zinc-50 bg-zinc-50 p-6">
+    <h2 class="text-sm font-semibold text-zinc-700 mb-4">Itens da Fatura</h2>
+    <div class="bg-white rounded-lg border border-zinc-200 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-zinc-100 text-zinc-600">
+                <tr>
+                    <th class="text-left px-4 py-2.5 font-medium">Descricao</th>
+                    <th class="text-center px-4 py-2.5 font-medium w-20">Qtd</th>
+                    <th class="text-right px-4 py-2.5 font-medium w-32">Valor Unit.</th>
+                    <th class="text-right px-4 py-2.5 font-medium w-28">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($invoice->items as $item)
+                    <tr class="border-t border-zinc-100">
+                        <td class="px-4 py-2.5 text-zinc-800">{{ $item->description }}</td>
+                        <td class="px-4 py-2.5 text-center text-zinc-600">{{ $item->quantity }}</td>
+                        <td class="px-4 py-2.5 text-right text-zinc-600">R$ {{ $item->unitPriceFormatted() }}</td>
+                        <td class="px-4 py-2.5 text-right font-medium text-zinc-800">R$ {{ $item->totalFormatted() }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot class="bg-zinc-50 border-t border-zinc-200">
+                <tr>
+                    <td colspan="3" class="px-4 py-3 text-right font-semibold text-zinc-700">Total:</td>
+                    <td class="px-4 py-3 text-right font-bold text-zinc-900 text-lg">R$ {{ $invoice->amountFormatted() }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+@endif
+
 {{-- PIX --}}
 @if($invoice->pix_copy_paste || $invoice->pix_qr_code)
 <div class="mt-6 rounded-xl border border-zinc-50 bg-zinc-50 p-6">
