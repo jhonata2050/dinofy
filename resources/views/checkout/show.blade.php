@@ -100,7 +100,7 @@
                                         class="w-full px-3 py-2.5 pr-9 border border-zinc-300 rounded-l-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-transparent lowercase transition">
                                     <div id="subdomainIcon" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden"></div>
                                 </div>
-                                <span class="px-3 py-2.5 bg-zinc-100 border border-l-0 border-zinc-300 rounded-r-lg text-sm text-zinc-500 whitespace-nowrap">.dinofy.cloud</span>
+                                <span class="px-3 py-2.5 bg-zinc-100 border border-l-0 border-zinc-300 rounded-r-lg text-sm text-zinc-500 whitespace-nowrap">.dinofy.app</span>
                             </div>
 
                             <div id="subdomainFeedback" class="mt-1.5 text-sm hidden"></div>
@@ -403,7 +403,7 @@ function renderSuggestions(items) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'px-2.5 py-1 text-xs font-medium border border-zinc-300 rounded-lg text-zinc-600 hover:bg-green-50 hover:border-green-400 hover:text-green-700 transition cursor-pointer';
-        btn.textContent = s + '.dinofy.cloud';
+        btn.textContent = s + '.dinofy.app';
         btn.addEventListener('click', () => { input.value = s; subdomainValid = false; hideAll(); resetBorder(); icon.innerHTML = spinnerSvg; icon.classList.remove('hidden'); checkSubdomain(s); });
         suggestionsList.appendChild(btn);
     });

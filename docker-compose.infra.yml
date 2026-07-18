@@ -11,10 +11,10 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@dinofy.cloud}"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@dinofy.app}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
-      - "--certificatesresolvers.wildcard.acme.email=${ACME_EMAIL:-admin@dinofy.cloud}"
+      - "--certificatesresolvers.wildcard.acme.email=${ACME_EMAIL:-admin@dinofy.app}"
       - "--certificatesresolvers.wildcard.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.wildcard.acme.dnschallenge=true"
       - "--certificatesresolvers.wildcard.acme.dnschallenge.provider=${DNS_PROVIDER:-cloudflare}"
@@ -31,11 +31,11 @@ services:
       - traefik-public
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${BASE_DOMAIN:-dinofy.cloud}`)"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${BASE_DOMAIN:-dinofy.app}`)"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
       - "traefik.http.routers.traefik-dashboard.tls.certresolver=wildcard"
-      - "traefik.http.routers.traefik-dashboard.tls.domains[0].main=${BASE_DOMAIN:-dinofy.cloud}"
-      - "traefik.http.routers.traefik-dashboard.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.routers.traefik-dashboard.tls.domains[0].main=${BASE_DOMAIN:-dinofy.app}"
+      - "traefik.http.routers.traefik-dashboard.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.app}"
       - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH:-admin:$$apr1$$xyz$$placeholder}"
 
@@ -49,10 +49,10 @@ services:
       - traefik-public
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.${BASE_DOMAIN:-dinofy.cloud}`)"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${BASE_DOMAIN:-dinofy.app}`)"
       - "traefik.http.routers.portainer.tls.certresolver=wildcard"
-      - "traefik.http.routers.portainer.tls.domains[0].main=${BASE_DOMAIN:-dinofy.cloud}"
-      - "traefik.http.routers.portainer.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.routers.portainer.tls.domains[0].main=${BASE_DOMAIN:-dinofy.app}"
+      - "traefik.http.routers.portainer.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.app}"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
   master:
@@ -69,13 +69,13 @@ services:
       APP_NAME: "Dinofy Master"
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_URL: "https://admin.${BASE_DOMAIN:-dinofy.cloud}"
+      APP_URL: "https://admin.${BASE_DOMAIN:-dinofy.app}"
       APP_KEY: ${APP_KEY:-}
       DB_HOST: master-mysql
       DB_DATABASE: ${MASTER_DB_DATABASE:-dinofy_master}
       DB_USERNAME: ${MASTER_DB_USERNAME:-master}
       DB_PASSWORD: ${MASTER_DB_PASSWORD:-master_secret}
-      BASE_DOMAIN: ${BASE_DOMAIN:-dinofy.cloud}
+      BASE_DOMAIN: ${BASE_DOMAIN:-dinofy.app}
       DINOFY_IMAGE: ${DINOFY_IMAGE:-dinofy_app:latest}
       CAJUPAY_API_KEY: ${CAJUPAY_API_KEY:-}
       CAJUPAY_API_SECRET: ${CAJUPAY_API_SECRET:-}
@@ -89,10 +89,10 @@ services:
       - master-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.master.rule=Host(`admin.${BASE_DOMAIN:-dinofy.cloud}`)"
+      - "traefik.http.routers.master.rule=Host(`admin.${BASE_DOMAIN:-dinofy.app}`)"
       - "traefik.http.routers.master.tls.certresolver=wildcard"
-      - "traefik.http.routers.master.tls.domains[0].main=${BASE_DOMAIN:-dinofy.cloud}"
-      - "traefik.http.routers.master.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.cloud}"
+      - "traefik.http.routers.master.tls.domains[0].main=${BASE_DOMAIN:-dinofy.app}"
+      - "traefik.http.routers.master.tls.domains[0].sans=*.${BASE_DOMAIN:-dinofy.app}"
       - "traefik.http.services.master.loadbalancer.server.port=80"
 
   master-mysql:

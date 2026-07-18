@@ -22,7 +22,7 @@ services:
       SESSION_DRIVER: database
       CACHE_STORE: file
       LOG_CHANNEL: stderr
-      BASE_DOMAIN: dinofy.cloud
+      BASE_DOMAIN: dinofy.app
       DINOFY_IMAGE: dinofy_app:latest
       TENANT_DATA_PATH: /srv/tenants
     depends_on:

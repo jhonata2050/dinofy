@@ -68,7 +68,7 @@
             <div class="grid grid-cols-2 gap-4 mb-5 text-sm">
                 <div>
                     <p class="text-xs text-zinc-400 uppercase font-semibold mb-1">Subdominio</p>
-                    <p class="text-zinc-700 font-medium">{{ $invoice->tenant->subdomain }}.dinofy.cloud</p>
+                    <p class="text-zinc-700 font-medium">{{ $invoice->tenant->subdomain }}.dinofy.app</p>
                 </div>
                 <div>
                     <p class="text-xs text-zinc-400 uppercase font-semibold mb-1">Vencimento</p>
@@ -147,7 +147,7 @@
         <div class="bg-white rounded-2xl shadow-sm p-6 text-center">
             <div class="mb-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                 <p class="text-xs text-emerald-600 font-semibold uppercase mb-1">Seu painel</p>
-                <p class="text-lg font-bold text-emerald-700">{{ $invoice->tenant->subdomain }}.dinofy.cloud</p>
+                <p class="text-lg font-bold text-emerald-700">{{ $invoice->tenant->subdomain }}.dinofy.app</p>
             </div>
 
             <p class="text-sm text-zinc-500 mb-5">O provisionamento pode levar alguns minutos. Use o login abaixo para acessar quando estiver pronto.</p>

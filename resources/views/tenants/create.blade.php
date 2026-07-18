@@ -13,7 +13,7 @@
                 <label class="block text-sm font-medium text-zinc-700 mb-1">Subdomínio</label>
                 <div class="flex">
                     <input type="text" name="subdomain" value="{{ old('subdomain') }}" required class="flex-1 px-3 py-2.5 border border-zinc-300 rounded-l-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-transparent">
-                    <span class="px-3 py-2.5 bg-zinc-200 border border-l-0 border-zinc-300 rounded-r-lg text-zinc-500 text-sm">.dinofy.cloud</span>
+                    <span class="px-3 py-2.5 bg-zinc-200 border border-l-0 border-zinc-300 rounded-r-lg text-zinc-500 text-sm">.dinofy.app</span>
                 </div>
             </div>
             <div>

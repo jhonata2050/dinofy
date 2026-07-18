@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'base_domain' => env('BASE_DOMAIN', 'dinofy.cloud'),
+    'base_domain' => env('BASE_DOMAIN', 'dinofy.app'),
     'dinofy_image' => env('DINOFY_IMAGE', 'dinofy_app:latest'),
     'tenant_data_path' => env('TENANT_DATA_PATH', '/srv/tenants'),
     'grace_period_days' => (int) env('BILLING_GRACE_DAYS', 3),
