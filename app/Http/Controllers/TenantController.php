@@ -91,8 +91,12 @@ class TenantController extends Controller
         $tenant->load(['plan', 'invoices' => fn ($q) => $q->latest()->take(10), 'domains']);
         $stats = $monitor->tenantStats($tenant);
         $logs = $docker->logs($tenant, 30);
+        $activityLogs = \App\Models\ActivityLog::where('tenant_id', $tenant->id)
+            ->latest()
+            ->take(20)
+            ->get();
 
-        return view('tenants.show', compact('tenant', 'stats', 'logs'));
+        return view('tenants.show', compact('tenant', 'stats', 'logs', 'activityLogs'));
     }
 
     public function edit(Tenant $tenant)

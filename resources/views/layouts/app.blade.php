@@ -189,9 +189,18 @@
                 </div>
             @endif
             @if(session('error'))
-                <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl flex items-center gap-3 text-sm">
-                    <svg class="w-5 h-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                    {{ session('error') }}
+                <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        <span class="flex-1">{{ Str::limit(session('error'), 120) }}</span>
+                        @if(strlen(session('error')) > 120)
+                            <button onclick="document.getElementById('errorDetail').classList.toggle('hidden')" class="text-red-600 hover:text-red-800 text-xs font-medium underline shrink-0">Ver detalhes</button>
+                        @endif
+                        <a href="{{ route('admin.activity-logs.index') }}" class="text-red-600 hover:text-red-800 text-xs font-medium underline shrink-0">Ver logs</a>
+                    </div>
+                    @if(strlen(session('error')) > 120)
+                        <pre id="errorDetail" class="hidden mt-3 p-3 bg-red-100 rounded-lg text-xs font-mono whitespace-pre-wrap break-all max-h-48 overflow-auto">{{ session('error') }}</pre>
+                    @endif
                 </div>
             @endif
             @if($errors->any())

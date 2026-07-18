@@ -18,19 +18,40 @@ class TenantProvisioner
     public function provision(Tenant $tenant): void
     {
         $tenant->update(['status' => 'provisioning']);
-        ActivityLog::log('tenant.provisioning', "Provisionando {$tenant->subdomain}", $tenant->id);
+        ActivityLog::log('tenant.provisioning', "Iniciando provisioning de {$tenant->subdomain}", $tenant->id);
 
-        $this->generator->saveToDisk($tenant);
+        // Step 1: Gerar docker-compose.yml
+        try {
+            $composePath = $this->generator->saveToDisk($tenant);
+            ActivityLog::log('tenant.provision_step', "Compose gerado em {$composePath}", $tenant->id);
+        } catch (\Throwable $e) {
+            $msg = "Falha ao gerar compose: {$e->getMessage()}";
+            ActivityLog::log('tenant.provision_failed', $msg, $tenant->id);
+            throw new \RuntimeException($msg);
+        }
 
+        // Step 2: Docker compose up
+        ActivityLog::log('tenant.provision_step', "Executando docker compose up para {$tenant->compose_project}...", $tenant->id);
         $result = $this->docker->up($tenant);
 
         if (!$result['success']) {
-            ActivityLog::log('tenant.provision_failed', "Falha ao provisionar: {$result['output']}", $tenant->id);
-            throw new \RuntimeException("Falha ao provisionar tenant: {$result['output']}");
+            $output = trim($result['output'] ?: 'Sem output do Docker');
+            $msg = "Docker compose up falhou (exit {$result['exit_code']}): {$output}";
+            ActivityLog::log('tenant.provision_failed', $msg, $tenant->id);
+            throw new \RuntimeException($msg);
         }
 
-        $this->traefik->writeTenantConfig($tenant);
+        ActivityLog::log('tenant.provision_step', "Containers criados com sucesso", $tenant->id);
 
+        // Step 3: Traefik config
+        try {
+            $this->traefik->writeTenantConfig($tenant);
+            ActivityLog::log('tenant.provision_step', "Config Traefik gravada", $tenant->id);
+        } catch (\Throwable $e) {
+            ActivityLog::log('tenant.provision_warning', "Traefik config falhou (tenant funcional): {$e->getMessage()}", $tenant->id);
+        }
+
+        // Step 4: Ativar
         $tenant->update([
             'status' => 'active',
             'next_billing_date' => $tenant->trial_ends_at ?? now()->addMonth(),
@@ -68,8 +89,16 @@ class TenantProvisioner
     public function terminate(Tenant $tenant): void
     {
         $tenant->update(['status' => 'terminating']);
-        $this->docker->destroy($tenant);
-        $this->traefik->removeTenantConfig($tenant);
+        try {
+            $this->docker->destroy($tenant);
+        } catch (\Throwable $e) {
+            ActivityLog::log('tenant.terminate_warning', "Docker destroy falhou: {$e->getMessage()}", $tenant->id);
+        }
+        try {
+            $this->traefik->removeTenantConfig($tenant);
+        } catch (\Throwable $e) {
+            // ignore
+        }
         $tenant->update(['status' => 'terminated']);
         ActivityLog::log('tenant.terminated', "Tenant {$tenant->subdomain} destruído", $tenant->id);
     }

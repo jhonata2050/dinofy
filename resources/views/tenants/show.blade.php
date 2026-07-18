@@ -220,4 +220,22 @@
     </div>
 </div>
 
+<div class="mt-4 rounded-xl border border-zinc-50 bg-zinc-50 p-5">
+    <h2 class="text-xs font-semibold text-zinc-500 uppercase mb-3">Logs de Atividade</h2>
+    @forelse($activityLogs as $log)
+        <div class="flex items-start gap-3 py-2 border-b border-zinc-100 last:border-0 text-sm">
+            <span class="shrink-0 mt-0.5 w-2 h-2 rounded-full {{ str_contains($log->action, 'failed') || str_contains($log->action, 'warning') ? 'bg-red-400' : (str_contains($log->action, 'provisioned') || str_contains($log->action, 'activated') ? 'bg-emerald-400' : 'bg-zinc-300') }}"></span>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600">{{ $log->action }}</span>
+                    <span class="text-zinc-400 text-xs">{{ $log->created_at->format('d/m H:i:s') }}</span>
+                </div>
+                <p class="text-zinc-600 text-xs mt-1 break-all">{{ $log->description }}</p>
+            </div>
+        </div>
+    @empty
+        <p class="text-zinc-400 text-sm">Nenhum log.</p>
+    @endforelse
+</div>
+
 @endsection
