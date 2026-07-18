@@ -87,6 +87,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
         Route::post('/tenants/{tenant}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
         Route::post('/tenants/{tenant}/reprovision', [TenantController::class, 'reprovision'])->name('tenants.reprovision');
+        Route::post('/tenants/{tenant}/docker/{action}', [TenantController::class, 'docker'])->name('tenants.docker')->where('action', 'start|stop|restart');
 
         Route::post('/tenants/{tenant}/domains', [DomainController::class, 'store'])->name('domains.store');
         Route::post('/domains/{domain}/verify', [DomainController::class, 'verify'])->name('domains.verify');

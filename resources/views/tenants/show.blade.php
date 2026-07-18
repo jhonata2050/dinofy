@@ -67,6 +67,26 @@
             </dd></div>
         </dl>
 
+        @if($tenant->status === 'active' || $tenant->status === 'suspended')
+            <div class="flex gap-2 mt-4 pt-3 border-t border-zinc-200">
+                @if($stats['running'])
+                    <form method="POST" action="{{ route('admin.tenants.docker', ['tenant' => $tenant, 'action' => 'stop']) }}" onsubmit="return confirm('Parar containers?')">
+                        @csrf
+                        <button class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200 transition">Parar</button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.tenants.docker', ['tenant' => $tenant, 'action' => 'restart']) }}" onsubmit="return confirm('Reiniciar containers?')">
+                        @csrf
+                        <button class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 transition">Reiniciar</button>
+                    </form>
+                @else
+                    <form method="POST" action="{{ route('admin.tenants.docker', ['tenant' => $tenant, 'action' => 'start']) }}">
+                        @csrf
+                        <button class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-200 transition">Iniciar</button>
+                    </form>
+                @endif
+            </div>
+        @endif
+
         {{-- Barra de uso de disco --}}
         @if(isset($stats['disk']))
             @php

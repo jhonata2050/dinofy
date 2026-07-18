@@ -144,6 +144,27 @@ class TenantController extends Controller
         return back()->with('success', 'Tenant reativado.');
     }
 
+    public function docker(Request $request, Tenant $tenant, DockerManager $docker)
+    {
+        $action = $request->route('action');
+
+        $result = match ($action) {
+            'start' => $docker->start($tenant),
+            'stop' => $docker->stop($tenant),
+            'restart' => (function () use ($docker, $tenant) {
+                $docker->stop($tenant);
+                return $docker->start($tenant);
+            })(),
+            default => ['success' => false, 'output' => 'Ação inválida'],
+        };
+
+        if ($result['success']) {
+            return back()->with('success', "Docker: {$action} executado com sucesso.");
+        }
+
+        return back()->with('error', "Docker {$action} falhou: {$result['output']}");
+    }
+
     public function reprovision(Tenant $tenant, TenantProvisioner $provisioner)
     {
         try {
