@@ -42,12 +42,6 @@ services:
       - traefik-public
       - internal
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.{{PROJECT_NAME}}.rule=Host(`{{SUBDOMAIN}}.{{BASE_DOMAIN}}`)"
-      - "traefik.http.routers.{{PROJECT_NAME}}.tls.certresolver=wildcard"
-      - "traefik.http.routers.{{PROJECT_NAME}}.tls.domains[0].main={{BASE_DOMAIN}}"
-      - "traefik.http.routers.{{PROJECT_NAME}}.tls.domains[0].sans=*.{{BASE_DOMAIN}}"
-      - "traefik.http.services.{{PROJECT_NAME}}.loadbalancer.server.port=80"
       - "dinofy.tenant={{TENANT_ID}}"
       - "dinofy.subdomain={{SUBDOMAIN}}"
 

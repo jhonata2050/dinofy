@@ -103,6 +103,27 @@
 
     <div class="rounded-xl border border-zinc-50 bg-zinc-50 p-5">
         <h2 class="text-xs font-semibold text-zinc-500 uppercase mb-3">Domínios</h2>
+
+        @if(session('dns_instructions'))
+            @php $dns = session('dns_instructions'); @endphp
+            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                <p class="font-medium text-blue-800 mb-2">Configure os registros DNS:</p>
+                <div class="space-y-2 text-xs font-mono bg-white rounded p-2.5 border border-blue-100">
+                    <div>
+                        <span class="text-zinc-500">1. TXT</span><br>
+                        <span class="text-zinc-700">Host: <strong>{{ $dns['txt']['host'] }}</strong></span><br>
+                        <span class="text-zinc-700">Valor: <strong>{{ $dns['txt']['value'] }}</strong></span>
+                    </div>
+                    <div class="border-t border-blue-100 pt-2">
+                        <span class="text-zinc-500">2. {{ $dns['cname']['type'] }}</span><br>
+                        <span class="text-zinc-700">Host: <strong>{{ $dns['cname']['host'] }}</strong></span><br>
+                        <span class="text-zinc-700">Valor: <strong>{{ $dns['cname']['value'] }}</strong></span>
+                    </div>
+                </div>
+                <p class="text-xs text-blue-600 mt-2">Após configurar, clique em "Verificar".</p>
+            </div>
+        @endif
+
         @foreach($tenant->domains as $domain)
             <div class="flex items-center justify-between mb-2 text-sm">
                 <div>
@@ -113,23 +134,28 @@
                         <span class="text-amber-600 text-xs ml-1">Pendente</span>
                     @endif
                 </div>
-                <div class="flex gap-1">
+                <div class="flex gap-2">
                     @unless($domain->isVerified())
                         <form method="POST" action="{{ route('admin.domains.verify', $domain) }}">
                             @csrf
                             <button class="text-xs font-medium hover:underline" style="color: var(--color-primary);">Verificar</button>
                         </form>
                     @endunless
-                    <form method="POST" action="{{ route('admin.domains.destroy', $domain) }}">
+                    <form method="POST" action="{{ route('admin.domains.destroy', $domain) }}" onsubmit="return confirm('Remover este domínio?')">
                         @csrf @method('DELETE')
                         <button class="text-red-600 hover:underline text-xs font-medium">Remover</button>
                     </form>
                 </div>
             </div>
         @endforeach
+
+        @if($tenant->domains->isEmpty())
+            <p class="text-zinc-400 text-sm mb-3">Nenhum domínio customizado.</p>
+        @endif
+
         <form method="POST" action="{{ route('admin.domains.store', $tenant) }}" class="mt-3 flex gap-2">
             @csrf
-            <input type="text" name="domain" placeholder="exemplo.com.br" class="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            <input type="text" name="domain" placeholder="exemplo.com.br" required class="flex-1 px-3 py-1.5 border border-zinc-300 rounded-lg text-sm focus:ring-2 focus:ring-green-600 focus:border-transparent">
             <button class="px-3 py-1.5 text-white rounded-lg text-sm font-medium" style="background: var(--color-primary);">Adicionar</button>
         </form>
     </div>

@@ -32,14 +32,7 @@ class DockerComposeGenerator
 
         $stub = file_get_contents(base_path('stubs/tenant-docker-compose.yml'));
 
-        $compose = str_replace(array_keys($replacements), array_values($replacements), $stub);
-
-        if ($tenant->custom_domain) {
-            $customLabels = $this->customDomainLabels($tenant);
-            $compose = $this->injectCustomDomainLabels($compose, $customLabels, $tenant->projectName());
-        }
-
-        return $compose;
+        return str_replace(array_keys($replacements), array_values($replacements), $stub);
     }
 
     public function saveToDisk(Tenant $tenant): string
@@ -54,30 +47,5 @@ class DockerComposeGenerator
         file_put_contents($path, $content);
 
         return $path;
-    }
-
-    private function customDomainLabels(Tenant $tenant): array
-    {
-        $name = $tenant->projectName();
-        return [
-            "traefik.http.routers.{$name}-custom.rule=Host(`{$tenant->custom_domain}`)",
-            "traefik.http.routers.{$name}-custom.tls.certresolver=letsencrypt",
-            "traefik.http.services.{$name}-custom.loadbalancer.server.port=80",
-        ];
-    }
-
-    private function injectCustomDomainLabels(string $compose, array $labels, string $projectName): string
-    {
-        $marker = "dinofy.subdomain";
-        $injection = '';
-        foreach ($labels as $label) {
-            $injection .= "      - \"{$label}\"\n";
-        }
-
-        return str_replace(
-            "      - \"dinofy.subdomain={{SUBDOMAIN}}\"",
-            "      - \"dinofy.subdomain={{SUBDOMAIN}}\"\n" . rtrim($injection),
-            $compose
-        );
     }
 }

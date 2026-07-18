@@ -12,6 +12,7 @@ class TenantProvisioner
     public function __construct(
         private readonly DockerComposeGenerator $generator,
         private readonly DockerManager $docker,
+        private readonly TraefikManager $traefik,
     ) {}
 
     public function provision(Tenant $tenant): void
@@ -28,30 +29,30 @@ class TenantProvisioner
             throw new \RuntimeException("Falha ao provisionar tenant: {$result['output']}");
         }
 
+        $this->traefik->writeTenantConfig($tenant);
+
         $tenant->update([
             'status' => 'active',
             'next_billing_date' => $tenant->trial_ends_at ?? now()->addMonth(),
         ]);
 
-        $password = Str::random(12);
         TenantUser::firstOrCreate(
             ['email' => $tenant->email],
             [
                 'tenant_id' => $tenant->id,
                 'name' => $tenant->name,
-                'password' => bcrypt($password),
+                'password' => bcrypt(Str::random(12)),
                 'is_owner' => true,
             ]
         );
 
-        ActivityLog::log('tenant.provisioned', "Tenant {$tenant->subdomain} ativo", $tenant->id, [
-            'client_password' => $password,
-        ]);
+        ActivityLog::log('tenant.provisioned', "Tenant {$tenant->subdomain} ativo", $tenant->id);
     }
 
     public function suspend(Tenant $tenant): void
     {
         $this->docker->stop($tenant);
+        $this->traefik->removeTenantConfig($tenant);
         $tenant->update(['status' => 'suspended']);
         ActivityLog::log('tenant.suspended', "Tenant {$tenant->subdomain} suspenso", $tenant->id);
     }
@@ -59,6 +60,7 @@ class TenantProvisioner
     public function activate(Tenant $tenant): void
     {
         $this->docker->start($tenant);
+        $this->traefik->writeTenantConfig($tenant);
         $tenant->update(['status' => 'active']);
         ActivityLog::log('tenant.activated', "Tenant {$tenant->subdomain} reativado", $tenant->id);
     }
@@ -67,6 +69,7 @@ class TenantProvisioner
     {
         $tenant->update(['status' => 'terminating']);
         $this->docker->destroy($tenant);
+        $this->traefik->removeTenantConfig($tenant);
         $tenant->update(['status' => 'terminated']);
         ActivityLog::log('tenant.terminated', "Tenant {$tenant->subdomain} destruído", $tenant->id);
     }
