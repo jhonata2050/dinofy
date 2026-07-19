@@ -41,16 +41,29 @@ class DockerManager
     {
         $result = $this->compose($tenant, ['ps', '-q', '--filter', 'status=running']);
 
-        if (!$result['success']) {
-            return false;
+        if ($result['success'] && !empty(trim($result['output']))) {
+            return true;
         }
 
-        return !empty(trim($result['output']));
+        $subdomain = $tenant->subdomain;
+        $project = $tenant->projectName();
+
+        $process = new Process(['docker', 'ps', '-q', '--filter', "name={$subdomain}-", '--filter', "status=running"]);
+        $process->run();
+        if ($process->isSuccessful() && !empty(trim($process->getOutput()))) {
+            return true;
+        }
+
+        $process2 = new Process(['docker', 'ps', '-q', '--filter', "name={$project}-", '--filter', "status=running"]);
+        $process2->run();
+        return $process2->isSuccessful() && !empty(trim($process2->getOutput()));
     }
 
     public function stats(Tenant $tenant): array
     {
         $project = $tenant->projectName();
+        $subdomain = $tenant->subdomain;
+
         $process = new Process([
             'docker', 'stats', '--no-stream', '--format',
             '{"name":"{{.Name}}","cpu":"{{.CPUPerc}}","memory":"{{.MemUsage}}","mem_percent":"{{.MemPerc}}"}',
@@ -65,7 +78,8 @@ class DockerManager
         $stats = [];
         foreach (explode("\n", trim($process->getOutput())) as $line) {
             $data = json_decode($line, true);
-            if ($data && str_starts_with($data['name'] ?? '', $project)) {
+            $name = $data['name'] ?? '';
+            if ($data && (str_starts_with($name, $project) || str_starts_with($name, $subdomain . '-'))) {
                 $stats[] = $data;
             }
         }
