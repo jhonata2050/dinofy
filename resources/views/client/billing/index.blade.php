@@ -19,8 +19,13 @@
     <div class="rounded-xl border border-zinc-100 bg-white p-5 shadow-sm">
         <p class="text-xs font-semibold text-zinc-400 uppercase">Proxima Cobranca</p>
         <p class="text-lg font-bold text-zinc-900 mt-1">{{ $tenant->next_billing_date?->format('d/m/Y') ?? '—' }}</p>
-        @if($tenant->next_billing_date && $tenant->next_billing_date->diffInDays(now()) <= 5 && $tenant->next_billing_date->isFuture())
-            <p class="text-xs text-amber-600 font-medium mt-0.5">Em {{ $tenant->next_billing_date->diffInDays(now()) }} dias</p>
+        @php
+            $daysLeft = $tenant->next_billing_date && $tenant->next_billing_date->isFuture()
+                ? (int) round(now()->diffInDays($tenant->next_billing_date))
+                : null;
+        @endphp
+        @if($daysLeft !== null && $daysLeft <= 30)
+            <p class="text-xs text-amber-600 font-medium mt-0.5">Em {{ $daysLeft }} {{ $daysLeft == 1 ? 'dia' : 'dias' }}</p>
         @endif
     </div>
     <div class="rounded-xl border border-zinc-100 bg-white p-5 shadow-sm">
