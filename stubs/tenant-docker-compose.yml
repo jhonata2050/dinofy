@@ -20,6 +20,7 @@ services:
       APP_DEBUG: "false"
       APP_KEY: "{{APP_KEY}}"
       DINOFY_APP_URL: "http://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
+      PUBLIC_URL_OVERRIDE: "http://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
       APP_INSTALLED: "true"
       APP_AUTO_MIGRATE: "true"
       DB_CONNECTION: mysql
