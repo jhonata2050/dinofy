@@ -43,6 +43,14 @@ class TenantProvisioner
 
         ActivityLog::log('tenant.provision_step', "Containers criados com sucesso", $tenant->id);
 
+        // Conectar o container app do tenant à rede dinofy-net para o Nginx proxy do Master
+        try {
+            $containerName = "{$tenant->compose_project}-app-1";
+            @exec("docker network connect dinofy-net {$containerName} 2>&1");
+        } catch (\Throwable $e) {
+            ActivityLog::log('tenant.provision_warning', "Falha ao conectar container na dinofy-net: {$e->getMessage()}", $tenant->id);
+        }
+
         // Step 2.1: Finalizar setup no container do cliente para pular /docker-setup
         try {
             $url = $tenant->fullUrl();
