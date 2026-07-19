@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('plan_id')->constrained();
+            $table->foreignId('plan_id')->constrained('plans')->onDelete('cascade');
             $table->string('subdomain')->unique();
             $table->string('name');
             $table->string('email');
