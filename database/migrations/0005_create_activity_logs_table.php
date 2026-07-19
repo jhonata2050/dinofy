@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->nullable()->constrained()->nullOnDelete();
             $table->string('action');
-            $table->string('description');
+            $table->text('description');
             $table->json('metadata')->nullable();
             $table->timestamps();
         });
