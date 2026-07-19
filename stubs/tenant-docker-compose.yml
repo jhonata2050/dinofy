@@ -54,7 +54,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 256M
+          memory: 512M
     command:
       - "--innodb-buffer-pool-size=64M"
       - "--innodb-log-file-size=16M"
@@ -74,6 +74,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
