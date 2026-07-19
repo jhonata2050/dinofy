@@ -6,6 +6,18 @@ cd /var/www/html
 mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache
 chmod -R 777 storage bootstrap/cache
 
+mkdir -p /srv/tenants
+chmod 777 /srv/tenants 2>/dev/null || chown www-data:www-data /srv/tenants || true
+
+if [ -d /etc/traefik/dynamic ]; then
+    chmod 777 /etc/traefik/dynamic 2>/dev/null || chown www-data:www-data /etc/traefik/dynamic || true
+fi
+
+if [ -S /var/run/docker.sock ]; then
+    chmod 666 /var/run/docker.sock 2>/dev/null || true
+fi
+
+
 DB_PORT="${DB_PORT:-3306}"
 MAX_RETRIES=60
 RETRY=0

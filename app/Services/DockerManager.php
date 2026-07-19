@@ -27,6 +27,11 @@ class DockerManager
         return $this->compose($tenant, ['start']);
     }
 
+    public function exec(Tenant $tenant, string $service, array $command): array
+    {
+        return $this->compose($tenant, array_merge(['exec', '-T', $service], $command));
+    }
+
     public function destroy(Tenant $tenant): array
     {
         return $this->compose($tenant, ['down', '-v', '--remove-orphans']);

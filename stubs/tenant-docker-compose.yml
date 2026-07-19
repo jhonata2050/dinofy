@@ -2,6 +2,8 @@ services:
   app:
     image: {{DINOFY_IMAGE}}
     restart: unless-stopped
+    ports:
+      - "{{PORT}}:80"
     deploy:
       resources:
         limits:

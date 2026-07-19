@@ -6,7 +6,9 @@ services:
     ports:
       - "8099:80"
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - master_storage:/var/www/html/storage
+      - tenant_data:/srv/tenants
     environment:
       APP_NAME: "Dinofy Master"
       APP_ENV: local
@@ -57,3 +59,4 @@ networks:
 volumes:
   master_storage:
   master_mysql_data:
+  tenant_data:

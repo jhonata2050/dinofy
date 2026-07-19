@@ -43,6 +43,24 @@ class TenantProvisioner
 
         ActivityLog::log('tenant.provision_step', "Containers criados com sucesso", $tenant->id);
 
+        // Step 2.1: Finalizar setup no container do cliente para pular /docker-setup
+        try {
+            $url = $tenant->fullUrl();
+            $host = parse_url($url, PHP_URL_HOST) ?: $tenant->subdomain;
+
+            $this->docker->exec($tenant, 'app', [
+                'sh', '-c',
+                "mkdir -p /var/www/html/.docker && " .
+                "echo \"{$url}\" > /var/www/html/.docker/app.url && " .
+                "echo \"true\" > /var/www/html/.docker/setup.done && " .
+                "echo \"true\" > /var/www/html/.docker/app.installed && " .
+                "echo \"{$host} {\n\treverse_proxy app:80\n}\" > /var/www/html/.docker/Caddyfile.domains"
+            ]);
+            ActivityLog::log('tenant.provision_step', "Setup automático gravado no container", $tenant->id);
+        } catch (\Throwable $e) {
+            ActivityLog::log('tenant.provision_warning', "Falha no setup automático: {$e->getMessage()}", $tenant->id);
+        }
+
         // Step 3: Traefik config
         try {
             $this->traefik->writeTenantConfig($tenant);

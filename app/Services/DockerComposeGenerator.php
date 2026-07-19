@@ -28,6 +28,7 @@ class DockerComposeGenerator
             '{{DB_ROOT_PASSWORD}}' => $tenant->db_password . '_root',
             '{{APP_KEY}}' => $tenant->app_key,
             '{{MAX_DB_CONNECTIONS}}' => (string) $plan->max_db_connections,
+            '{{PORT}}' => (string) (8000 + $tenant->id),
         ];
 
         $stub = file_get_contents(base_path('stubs/tenant-docker-compose.yml'));
