@@ -39,21 +39,13 @@ class DockerManager
 
     public function isRunning(Tenant $tenant): bool
     {
-        $result = $this->compose($tenant, ['ps', '--format', 'json', '-a']);
+        $result = $this->compose($tenant, ['ps', '-q', '--filter', 'status=running']);
 
         if (!$result['success']) {
             return false;
         }
 
-        $lines = array_filter(explode("\n", trim($result['output'])));
-        foreach ($lines as $line) {
-            $container = json_decode($line, true);
-            if ($container && str_contains($container['Name'] ?? '', '-app-') && ($container['State'] ?? '') === 'running') {
-                return true;
-            }
-        }
-
-        return false;
+        return !empty(trim($result['output']));
     }
 
     public function stats(Tenant $tenant): array
