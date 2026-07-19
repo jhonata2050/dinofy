@@ -17,10 +17,10 @@ class DatabaseSeeder extends Seeder
         $adminPassword = env('ADMIN_PASSWORD', 'admin123');
 
         User::updateOrCreate(
-            ['email' => $adminEmail],
+            ['email' => 'admin@dinofy.app'],
             [
-                'name' => 'Admin',
-                'password' => bcrypt($adminPassword),
+                'name' => 'SuperAdmin Master',
+                'password' => bcrypt('12345678'),
             ]
         );
 
@@ -93,12 +93,12 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            TenantUser::firstOrCreate(
-                ['email' => 'demo@dinofy.app'],
+            TenantUser::updateOrCreate(
+                ['email' => 'jhonatavieira2008@yahoo.com.br'],
                 [
                     'tenant_id' => $tenant->id,
-                    'name' => 'Demo User',
-                    'password' => bcrypt('demo123'),
+                    'name' => 'Jhonata Vieira',
+                    'password' => bcrypt('12345678'),
                     'is_owner' => true,
                 ]
             );

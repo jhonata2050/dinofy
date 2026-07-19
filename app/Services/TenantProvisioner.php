@@ -61,6 +61,26 @@ class TenantProvisioner
             ActivityLog::log('tenant.provision_warning', "Falha no setup automático: {$e->getMessage()}", $tenant->id);
         }
 
+        // Step 2.2: Criar o usuário Admin do container do cliente para pular /criar-admin
+        try {
+            $owner = TenantUser::where('tenant_id', $tenant->id)->where('is_owner', true)->first();
+            if ($owner) {
+                $email = addslashes($owner->email);
+                $name = addslashes($owner->name);
+                $password = addslashes($owner->password);
+
+                $cmd = "require 'vendor/autoload.php'; " .
+                       "\$app = require_once 'bootstrap/app.php'; " .
+                       "\$app->make('Illuminate\\\\Contracts\\\\Console\\\\Kernel')->bootstrap(); " .
+                       "\\App\\Models\\User::firstOrCreate(['email' => '{$email}'], ['name' => '{$name}', 'password' => '{$password}', 'role' => 'admin']);";
+
+                $this->docker->exec($tenant, 'app', ['php', '-r', $cmd]);
+                ActivityLog::log('tenant.provision_step', "Usuário administrador inicial criado no container do cliente", $tenant->id);
+            }
+        } catch (\Throwable $e) {
+            ActivityLog::log('tenant.provision_warning', "Falha ao criar admin no container do cliente: {$e->getMessage()}", $tenant->id);
+        }
+
         // Step 3: Traefik config
         try {
             $this->traefik->writeTenantConfig($tenant);
