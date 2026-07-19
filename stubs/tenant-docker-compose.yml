@@ -19,7 +19,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: "{{APP_KEY}}"
-      DINOFY_APP_URL: "https://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
+      DINOFY_APP_URL: "http://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
       APP_INSTALLED: "true"
       APP_AUTO_MIGRATE: "true"
       DB_CONNECTION: mysql
@@ -109,7 +109,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: "{{APP_KEY}}"
-      DINOFY_APP_URL: "https://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
+      DINOFY_APP_URL: "http://{{SUBDOMAIN}}.{{BASE_DOMAIN}}"
       APP_INSTALLED: "true"
       DB_CONNECTION: mysql
       DB_HOST: mysql
